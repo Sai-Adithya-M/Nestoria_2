@@ -54,16 +54,16 @@ async function assertHotelOwner(hotelId, hostId) {
 
 // ---------- POST /rooms ----------
 const create = asyncHandler(async (req, res) => {
-  const { hotel_id, type, view, beds, size_sqm, price_per_night, image_url, hue, amenities } = req.body;
+  const { hotel_id, name, type, view, beds, size_sqm, price_per_night, image_url, hue, amenities, special_amenities } = req.body;
   if (!hotel_id || !type || !price_per_night) throw badRequest('hotel_id, type, price_per_night required');
   await assertHotelOwner(Number(hotel_id), req.user.id);
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const { rows } = await client.query(
-      `INSERT INTO rooms (hotel_id, type, view, beds, size_sqm, price_per_night, image_url, hue)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-      [hotel_id, type, view, beds, size_sqm, price_per_night, image_url, hue || 'sand']
+      `INSERT INTO rooms (hotel_id, name, type, view, beds, size_sqm, price_per_night, image_url, hue, special_amenities)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+      [hotel_id, name || type, type, view, beds, size_sqm, price_per_night, image_url, hue || 'sand', special_amenities || null]
     );
     const room = rows[0];
     if (Array.isArray(amenities) && amenities.length) {
@@ -87,7 +87,7 @@ const create = asyncHandler(async (req, res) => {
 const update = asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
   await assertRoomOwner(id, req.user.id);
-  const allowed = ['type', 'view', 'beds', 'size_sqm', 'price_per_night', 'image_url', 'hue', 'status'];
+  const allowed = ['name', 'type', 'view', 'beds', 'size_sqm', 'price_per_night', 'image_url', 'hue', 'status', 'special_amenities'];
   const fields = allowed.filter((f) => req.body[f] !== undefined);
   if (!fields.length) return res.json({ updated: false });
   const set = fields.map((f, i) => `${f} = $${i + 1}`).join(', ');

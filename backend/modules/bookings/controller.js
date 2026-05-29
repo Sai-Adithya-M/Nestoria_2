@@ -83,7 +83,12 @@ const myBookings = asyncHandler(async (req, res) => {
 const detail = asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
   const { rows } = await pool.query(
-    `SELECT b.*, r.type AS room_type, r.view AS room_view, h.name AS hotel_name, h.slug AS hotel_slug
+    `SELECT b.*,
+            r.type AS room_type, r.view AS room_view, r.image_url AS room_image,
+            h.name AS hotel_name, h.slug AS hotel_slug, h.city AS hotel_city,
+            h.region AS hotel_region, h.hue AS hotel_hue, h.hero_image_url AS hotel_hero,
+            h.phone AS hotel_phone, h.address AS hotel_address,
+            EXISTS (SELECT 1 FROM hotel_reviews hr WHERE hr.booking_id = b.id) AS has_review
        FROM bookings b
        JOIN rooms r ON r.id = b.room_id
        JOIN hotels h ON h.id = b.hotel_id

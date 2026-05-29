@@ -12,12 +12,17 @@ function assertRole(role) {
 }
 
 function publicShape(user, role) {
+  const onboarded = role === 'host'
+    ? Boolean(user.business_name && user.phone)
+    : true;
   return {
     id: user.id,
     email: user.email,
     full_name: user.full_name,
     phone: user.phone,
     profile_image_url: user.profile_image_url,
+    business_name: user.business_name ?? null,
+    onboarded,
     role,
   };
 }
@@ -48,7 +53,11 @@ const login = asyncHandler(async (req, res) => {
 
   const repo = userRepo(role);
   const record = await repo.getByEmail(email.toLowerCase());
-  if (!record || !record.password_hash) throw unauthorized('Invalid credentials');
+  if (!record) throw unauthorized('Invalid credentials');
+  if (!record.password_hash) {
+    // Account exists but has no password set — created via Google.
+    throw unauthorized('This account uses Google sign-in. Use the "Continue with Google" button below.');
+  }
   const ok = await bcrypt.compare(password, record.password_hash);
   if (!ok) throw unauthorized('Invalid credentials');
 

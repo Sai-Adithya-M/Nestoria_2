@@ -98,8 +98,10 @@ Returns up to 100 hotels with embedded amenities:
 Aggregated city + region list for the home page.
 
 ```json
-{ "destinations": [ { "name": "Udaipur", "region": "Rajasthan", "stays": 2, "hue": "sand" }, … ] }
+{ "destinations": [ { "name": "Udaipur", "region": "Rajasthan", "stays": 2, "hue": "sand", "hero_image_url": "https://…/marigold-house/hero.jpg" }, … ] }
 ```
+
+The `hero_image_url` is the first non-null hotel hero from each city — used to fill the destination cards on the home page.
 
 ### `GET /api/hotels/:slug`
 
@@ -121,9 +123,9 @@ Full hotel detail including amenities, rooms, recent reviews and gallery.
 
 ### `POST /api/hotels`
 
-Host only. Creates a new property. Body matches the editable columns (`name`, `slug`, `region`, `city`, `address`, `description`, `checkin_time`, `checkout_time`, `phone`, `hero_image_url`, `hue`, `badge`) plus an optional `amenities: ["wifi", "pool", …]` array of amenity `key`s. The host becomes the owner automatically.
+Host only. Creates a new property. Body matches the editable columns (`name`, `slug`, `region`, `city`, `address`, `description`, `checkin_time`, `checkout_time`, `phone`, `hero_image_url`, `hue`, `badge`, `latitude`, `longitude`) plus an optional `amenities: ["wifi", "pool", …]` array of amenity `key`s. The host becomes the owner automatically.
 
-Returns `201` with `{ hotel }`. Conflict (`409`) on slug clash.
+Returns `201` with `{ hotel }`. Conflict (`409`) on slug clash. Returns `400` if the host hasn't filled `business_name` + `phone` on their profile yet.
 
 ### `PUT /api/hotels/:id`
 
@@ -146,6 +148,20 @@ Public. Full room detail with amenities and gallery.
 Public. Returns `{ available: true | false }` based on existing non-cancelled bookings overlap.
 
 ### `POST /api/rooms`
+
+Host (owner of the parent hotel). Body fields:
+
+| Field | Required | Notes |
+|---|---|---|
+| `hotel_id` | yes | The parent hotel |
+| `name` | yes | Display name shown on the public detail page (e.g. `Heritage Suite — Lake View`) |
+| `type` | yes | Short category (e.g. `Suite`, `Cabin`) |
+| `price_per_night` | yes | Integer rupees |
+| `size_sqm`, `view`, `beds` | no | Free text |
+| `hue` | no | One of `sand / ocean / forest / dusk / warm / cool`; defaults to `sand` |
+| `special_amenities` | yes (UI) | Comma-separated string — rendered as chips on the detail screen |
+| `image_url` | no | Public image URL (Supabase) |
+
 
 Host (owner of the hotel). Body:
 
@@ -190,6 +206,21 @@ Customer's own bookings, newest first, with embedded hotel and room metadata.
 
 Auth required. Visible to the booking's customer **or** the hosting host. Anyone else gets `403`.
 
+The response is rich enough to power the `/reservations/:id` screen without a second hotel/room round-trip:
+
+```json
+{ "booking": {
+    "id": 17, "status": "confirmed", "payment_status": "paid",
+    "checkin_date": "2026-06-10", "checkout_date": "2026-06-13", "guests": 2,
+    "base_amount": 36000, "tax_amount": 6480, "total_amount": 42480,
+    "room_type": "Heritage Suite", "room_view": "Lake", "room_image": "…",
+    "hotel_name": "The Marigold House", "hotel_slug": "marigold-house",
+    "hotel_city": "Udaipur", "hotel_region": "Rajasthan", "hotel_hue": "sand",
+    "hotel_hero": "…", "hotel_phone": "+91 294 555 0142", "hotel_address": "…",
+    "has_review": false
+} }
+```
+
 ### `PUT /api/bookings/:id/cancel`
 
 Customer only. Cancels a `pending` or `confirmed` booking. `404` if the booking doesn't exist or isn't cancellable.
@@ -231,6 +262,29 @@ Auth required. Returns the rich profile shape for the current user (Customer or 
 Auth required. Partial update. Only the role's allow-listed columns are accepted — extra keys in the body are silently ignored.
 
 ### `PUT /api/profile/change-password`
+
+Reset password (the user supplies the current password unless their record only has a Google login).
+
+### `GET /api/profile/saved`
+
+Returns the authenticated user's saved hotels. Works for both customer and host roles (favourites are role-scoped, so each role keeps its own list).
+
+```json
+{ "ids": [1, 4, 7], "hotels": [ { "id": 1, "slug": "marigold-house", "name": "…", "city": "Udaipur", "region": "Rajasthan", "hue": "sand", "hero_image_url": "…", "price_from": 14800, "rating_avg": 4.83, "rating_count": 12, "badge": "Hand-picked" }, … ] }
+```
+
+### `POST /api/profile/saved/:hotelId`
+
+Upsert. Returns `{ "saved": true }`. Idempotent.
+
+### `DELETE /api/profile/saved/:hotelId`
+
+Returns `{ "saved": false }`. Idempotent.
+
+### Profile payloads include `onboarded`
+
+`GET /api/profile` and every auth response (`POST /api/auth/login`, `register`, `google`) now include a derived `onboarded` boolean on the user payload. For hosts it is `true` only when both `business_name` and `phone` are set; for customers it is always `true`. The frontend uses it to gate the property-listing flow.
+
 
 ```json
 { "current_password": "…", "new_password": "at-least-8-chars" }

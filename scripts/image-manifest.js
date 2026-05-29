@@ -59,7 +59,7 @@ module.exports = [
       u('1564013799919-ab600027ffc6'),       // tropical pool
       u('1542314831-068cd1dbfeeb'),          // garden lounge
       u('1571003123894-1f0594d2b5d9'),       // palms + sky
-      u('1414235077428-338989a2e8c0'),       // veranda breakfast spread
+      u('1530062845289-9109b2c9c868'),       // courtyard table — Pamparo dining
     ],
     rooms: [
       { type: 'Pool Suite',  url: u('1551918120-9739cb430c6d') }, // bright pool-side bedroom
@@ -150,7 +150,7 @@ module.exports = [
       u('1559551409-dadc959f76b8'),          // meditation pavilion
       u('1602002418082-a4443e081dd1'),       // farm-to-table dining
       u('1551105378-78e609e1d468'),          // garden walkway
-      u('1414235077428-338989a2e8c0'),       // communal table, biodynamic spread
+      u('1485921325833-c519f76c4927'),       // biodynamic communal table — Indigo dining
     ],
     rooms: [
       { type: 'Earth Cabin',  url: u('1517840901100-8179e982acb7') }, // earthy minimalist bedroom

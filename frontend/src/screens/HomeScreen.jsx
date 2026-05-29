@@ -108,7 +108,7 @@ export default function HomeScreen() {
             <div><div className="stat-num">{featuredQ.data ? '8+' : '—'}</div><div className="stat-label">Curated stays</div></div>
             <div><div className="stat-num">{destinationsQ.data?.length ?? '—'}</div><div className="stat-label">Destinations</div></div>
             <div><div className="stat-num">4.8<span style={{fontSize:24,opacity:.5}}>/5</span></div><div className="stat-label">Average guest score</div></div>
-            <div><div className="stat-num">2014</div><div className="stat-label">Year founded</div></div>
+            <div><div className="stat-num">2024</div><div className="stat-label">Year founded</div></div>
           </div>
         </div>
       </section>

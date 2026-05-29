@@ -6,8 +6,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 
 import Photo from '../components/Photo.jsx';
 import Icon from '../components/Icon.jsx';
-import { hotelsAPI, roomsAPI, hostAPI, uploadAPI } from '../lib/api.js';
+import HotelMap from '../components/HotelMap.jsx';
+import { hotelsAPI, roomsAPI, hostAPI, uploadAPI, profileAPI } from '../lib/api.js';
 import { hotelBasicsSchema, hotelAddressSchema, roomSchema } from '../lib/schemas.js';
+import { useAuth } from '../context/AuthContext.jsx';
 
 const AMENITIES = [
   { key: 'wifi',      label: 'Fibre Wi-Fi',      icon: 'wifi' },
@@ -24,11 +26,30 @@ const AMENITIES = [
 
 const HUES = ['sand','ocean','forest','dusk','warm','cool'];
 
+const HUE_COLORS = {
+  sand:   '#d4b483',
+  ocean:  '#5e8ba6',
+  forest: '#6e8b6c',
+  dusk:   '#a87b8f',
+  warm:   '#c97d5d',
+  cool:   '#7a96a8',
+};
+
 export default function AddRoomsScreen() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const qc = useQueryClient();
+  const { user } = useAuth();
   const editingHotelId = Number(params.get('hotel')) || null;
+
+  // Pull fresh profile so onboarding flag reflects DB state, not just auth context.
+  const profileQ = useQuery({
+    queryKey: ['profile'],
+    queryFn: () => profileAPI.get().then((d) => d.user),
+  });
+  const onboarded = profileQ.data
+    ? Boolean(profileQ.data.business_name && profileQ.data.phone)
+    : user?.onboarded;
 
   const propertiesQ = useQuery({ queryKey: ['host','properties'], queryFn: () => hostAPI.properties().then((d) => d.properties), enabled: !!editingHotelId });
   const hotelForEdit = propertiesQ.data?.find((p) => p.id === editingHotelId);
@@ -44,7 +65,7 @@ export default function AddRoomsScreen() {
   });
   const addressForm = useForm({
     resolver: zodResolver(hotelAddressSchema),
-    defaultValues: { address: '', phone: '', checkin_time: '15:00', checkout_time: '11:00', amenities: ['wifi','spa','utensils','ac'] },
+    defaultValues: { address: '', phone: '', checkin_time: '15:00', checkout_time: '11:00', amenities: ['wifi','spa','utensils','ac'], latitude: undefined, longitude: undefined },
   });
 
   const createHotelMut = useMutation({
@@ -59,7 +80,7 @@ export default function AddRoomsScreen() {
 
   const roomForm = useForm({
     resolver: zodResolver(roomSchema),
-    defaultValues: { type: 'Heritage Suite', view: '', beds: 'King bed', size_sqm: 32, price_per_night: 10000, hue: 'sand' },
+    defaultValues: { name: '', type: 'Heritage Suite', view: '', beds: 'King bed', size_sqm: 32, price_per_night: 10000, hue: 'sand', special_amenities: '' },
   });
 
   const createRoomMut = useMutation({
@@ -102,6 +123,22 @@ export default function AddRoomsScreen() {
     { id: 2, label: 'Rooms' },
   ];
 
+  // Gate: hosts must complete their business profile before listing.
+  if (user?.role === 'host' && profileQ.isFetched && !onboarded && !editingHotelId) {
+    return (
+      <div className="container" style={{ padding: '120px 0', textAlign: 'center', maxWidth: 600 }}>
+        <div className="eyebrow mb-3">— One step first</div>
+        <h2 className="h-2">Finish your host profile</h2>
+        <p className="text-muted mt-3">
+          Add your business name and a reception phone before listing a property. It takes about a minute.
+        </p>
+        <button className="btn btn-primary mt-6" onClick={() => navigate('/host/profile')}>
+          Open profile <Icon name="arrow-right" size={14} />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="container" style={{ paddingTop: 36, paddingBottom: 80, maxWidth: 980 }}>
       <button onClick={() => navigate('/host/dashboard')} className="text-muted mb-4" style={{ fontSize: 13 }}>← Back to dashboard</button>
@@ -136,9 +173,13 @@ export default function AddRoomsScreen() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div className="field"><label className="field-label">Region (state)</label>
-                <input className="input" placeholder="Rajasthan" {...basicsForm.register('region')} /></div>
+                <input className="input" placeholder="Rajasthan" {...basicsForm.register('region')} />
+                {basicsForm.formState.errors.region && <small style={{ color: 'var(--danger)' }}>{basicsForm.formState.errors.region.message}</small>}
+              </div>
               <div className="field"><label className="field-label">City</label>
-                <input className="input" placeholder="Udaipur" {...basicsForm.register('city')} /></div>
+                <input className="input" placeholder="Udaipur" {...basicsForm.register('city')} />
+                {basicsForm.formState.errors.city && <small style={{ color: 'var(--danger)' }}>{basicsForm.formState.errors.city.message}</small>}
+              </div>
             </div>
             <div className="field mt-3 mb-3">
               <label className="field-label">A short description</label>
@@ -148,13 +189,20 @@ export default function AddRoomsScreen() {
             <div className="field mb-4">
               <label className="field-label">Mood / colour</label>
               <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-                {HUES.map((h) => (
-                  <label key={h} className="chip" style={{ cursor: 'pointer' }}>
-                    <input type="radio" value={h} {...basicsForm.register('hue')} style={{ display: 'none' }} />
-                    <span style={{ width: 12, height: 12, borderRadius: '50%', display: 'inline-block', background: 'var(--accent)' }} className={`photo-bg`} data-hue={h} />
-                    {h}
-                  </label>
-                ))}
+                {HUES.map((h) => {
+                  const selected = basicsForm.watch('hue') === h;
+                  return (
+                    <button
+                      type="button"
+                      key={h}
+                      className={`chip ${selected ? 'is-active' : ''}`}
+                      onClick={() => basicsForm.setValue('hue', h, { shouldValidate: true })}
+                    >
+                      <span style={{ width: 14, height: 14, borderRadius: '50%', background: HUE_COLORS[h], display: 'inline-block', border: '1px solid color-mix(in oklab, var(--ink) 8%, transparent)' }} />
+                      {h}
+                    </button>
+                  );
+                })}
               </div>
             </div>
             <div className="row mt-8" style={{ justifyContent: 'flex-end' }}>
@@ -174,6 +222,28 @@ export default function AddRoomsScreen() {
             <div className="field mb-6">
               <label className="field-label">Reception phone</label>
               <input className="input" placeholder="+91 ..." {...addressForm.register('phone')} />
+            </div>
+
+            <div className="field mb-6">
+              <label className="field-label">Pin the property on the map</label>
+              <p className="text-muted" style={{ fontSize: 12, marginBottom: 10 }}>
+                Click anywhere to drop a pin. Drag the pin to fine-tune.
+              </p>
+              <HotelMap
+                lat={addressForm.watch('latitude')}
+                lng={addressForm.watch('longitude')}
+                interactive
+                height={360}
+                onChange={({ lat, lng }) => {
+                  addressForm.setValue('latitude', lat, { shouldValidate: true });
+                  addressForm.setValue('longitude', lng, { shouldValidate: true });
+                }}
+              />
+              <div className="text-mono mt-2" style={{ fontSize: 12, color: 'var(--ink-3)' }}>
+                {addressForm.watch('latitude') != null && addressForm.watch('longitude') != null
+                  ? `lat ${Number(addressForm.watch('latitude')).toFixed(5)}, lng ${Number(addressForm.watch('longitude')).toFixed(5)}`
+                  : 'No pin yet'}
+              </div>
             </div>
 
             <div className="eyebrow mb-3">— Amenities</div>
@@ -265,11 +335,17 @@ export default function AddRoomsScreen() {
               {editingIdx === 'new' && (
                 <form className="card-flat" style={{ padding: 16, background: 'var(--bg-inset)' }}
                       onSubmit={roomForm.handleSubmit(submitRoom)}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="field"><label className="field-label">Room name</label>
+                      <input className="input" placeholder="Heritage Suite — Lake View" {...roomForm.register('name')} />
+                      {roomForm.formState.errors.name && <small style={{ color: 'var(--danger)' }}>{roomForm.formState.errors.name.message}</small>}
+                    </div>
                     <div className="field"><label className="field-label">Type</label>
-                      <input className="input" {...roomForm.register('type')} />
+                      <input className="input" placeholder="Suite, Cabin, Studio…" {...roomForm.register('type')} />
                       {roomForm.formState.errors.type && <small style={{ color: 'var(--danger)' }}>{roomForm.formState.errors.type.message}</small>}
                     </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginTop: 12 }}>
                     <div className="field"><label className="field-label">₹ / night</label>
                       <input className="input" type="number" {...roomForm.register('price_per_night')} />
                       {roomForm.formState.errors.price_per_night && <small style={{ color: 'var(--danger)' }}>{roomForm.formState.errors.price_per_night.message}</small>}
@@ -285,6 +361,11 @@ export default function AddRoomsScreen() {
                         {HUES.map((h) => <option key={h} value={h}>{h}</option>)}
                       </select></div>
                   </div>
+                  <div className="field mt-3"><label className="field-label">Special amenities</label>
+                    <input className="input" placeholder="Private balcony, Bathtub, Outdoor shower" {...roomForm.register('special_amenities')} />
+                    <small className="text-muted" style={{ fontSize: 11 }}>Comma separated — unique to this room.</small>
+                    {roomForm.formState.errors.special_amenities && <small style={{ color: 'var(--danger)', display: 'block' }}>{roomForm.formState.errors.special_amenities.message}</small>}
+                  </div>
                   {createRoomMut.isError && (
                     <p style={{ color: 'var(--danger)', fontSize: 13, marginTop: 12 }}>{createRoomMut.error?.response?.data?.error || 'Failed'}</p>
                   )}
@@ -298,11 +379,22 @@ export default function AddRoomsScreen() {
               )}
             </div>
 
+            {rooms.length === 0 && (
+              <p className="text-muted mt-6" style={{ fontSize: 13 }}>
+                Add at least one room before publishing.
+              </p>
+            )}
+
             <div className="row mt-8" style={{ justifyContent: 'space-between' }}>
               <button className="btn btn-ghost" onClick={() => editingHotelId ? navigate('/host/dashboard') : setStep(1)}>
                 {editingHotelId ? 'Cancel' : 'Back'}
               </button>
-              <button className="btn btn-accent btn-lg" onClick={() => navigate('/host/dashboard')}>
+              <button
+                className="btn btn-accent btn-lg"
+                disabled={rooms.length === 0}
+                title={rooms.length === 0 ? 'Add at least one room before publishing' : undefined}
+                onClick={() => navigate('/host/dashboard')}
+              >
                 <Icon name="check" size={14} /> {editingHotelId ? 'Done' : 'Publish property'}
               </button>
             </div>

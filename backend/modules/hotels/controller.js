@@ -107,18 +107,29 @@ const detail = asyncHandler(async (req, res) => {
 
 // ---------- POST /hotels  (host creates) ----------
 const create = asyncHandler(async (req, res) => {
-  const { name, slug, region, city, address, description, checkin_time, checkout_time, phone, hero_image_url, hue, badge, amenities } = req.body;
+  const { name, slug, region, city, address, description, checkin_time, checkout_time, phone, hero_image_url, hue, badge, amenities, latitude, longitude } = req.body;
   if (!name || !slug) throw badRequest('name and slug are required');
+
+  // Hosts must complete their business profile before listing.
+  const { rows: hostRows } = await pool.query(
+    'SELECT business_name, phone FROM hosts WHERE id = $1',
+    [req.user.id]
+  );
+  const host = hostRows[0];
+  if (!host || !host.business_name || !host.phone) {
+    throw badRequest('Complete your business details (business name + phone) before listing a property');
+  }
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const { rows } = await client.query(
       `INSERT INTO hotels (host_id, name, slug, region, city, address, description,
-                           checkin_time, checkout_time, phone, hero_image_url, hue, badge)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+                           checkin_time, checkout_time, phone, hero_image_url, hue, badge,
+                           latitude, longitude)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
        RETURNING *`,
-      [req.user.id, name, slug, region, city, address, description, checkin_time, checkout_time, phone, hero_image_url, hue || 'sand', badge]
+      [req.user.id, name, slug, region, city, address, description, checkin_time, checkout_time, phone, hero_image_url, hue || 'sand', badge, latitude ?? null, longitude ?? null]
     );
     const hotel = rows[0];
     if (Array.isArray(amenities) && amenities.length) {
@@ -149,7 +160,7 @@ async function assertOwner(hotelId, hostId) {
 const update = asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
   await assertOwner(id, req.user.id);
-  const allowed = ['name', 'region', 'city', 'address', 'description', 'checkin_time', 'checkout_time', 'phone', 'hero_image_url', 'hue', 'badge'];
+  const allowed = ['name', 'region', 'city', 'address', 'description', 'checkin_time', 'checkout_time', 'phone', 'hero_image_url', 'hue', 'badge', 'latitude', 'longitude'];
   const fields = allowed.filter((f) => req.body[f] !== undefined);
   if (!fields.length) return res.json({ updated: false });
   const set = fields.map((f, i) => `${f} = $${i + 1}`).join(', ');

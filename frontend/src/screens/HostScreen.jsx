@@ -76,13 +76,15 @@ export default function HostScreen({ tab: initialTab }) {
   const [params, setParams] = useSearchParams();
   const qc = useQueryClient();
   const { user, setUser } = useAuth();
-  const [tab, setTab] = useState(initialTab || params.get('tab') || 'overview');
+  const [tab, setTab] = useState(params.get('tab') || initialTab || 'overview');
 
+  // URL is the source of truth — query param overrides `initialTab` so in-page
+  // tab clicks (which push `?tab=...`) aren't snapped back by the route prop.
   useEffect(() => {
-    const next = initialTab || params.get('tab') || 'overview';
+    const next = params.get('tab') || initialTab || 'overview';
     if (next !== tab) setTab(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params, initialTab]);
+  }, [params]);
 
   const propertiesQ = useQuery({ queryKey: ['host','properties'], queryFn: () => hostAPI.properties().then((d) => d.properties) });
   const statsQ      = useQuery({ queryKey: ['host','stats'],      queryFn: () => hostAPI.stats() });
@@ -113,11 +115,29 @@ export default function HostScreen({ tab: initialTab }) {
           <button className="btn btn-ghost btn-sm">
             <Icon name="calendar" size={14} /> {new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
           </button>
-          <button className="btn btn-primary btn-sm" onClick={() => navigate('/host/add-rooms')}>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => navigate(user?.onboarded === false ? '/host/profile' : '/host/add-rooms')}
+            title={user?.onboarded === false ? 'Complete your profile first' : undefined}
+          >
             <Icon name="plus" size={14} /> Add property
           </button>
         </div>
       </div>
+
+      {user?.onboarded === false && (
+        <div className="card-flat fade-up" style={{ padding: 20, marginBottom: 24, borderColor: 'color-mix(in oklab, var(--accent) 30%, var(--line))', background: 'color-mix(in oklab, var(--accent) 6%, var(--bg-elev))' }}>
+          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+            <div>
+              <div className="eyebrow mb-2">— Finish your profile</div>
+              <div className="serif" style={{ fontSize: 20 }}>Add your business name and reception phone to start listing.</div>
+            </div>
+            <button className="btn btn-primary btn-sm" onClick={() => navigate('/host/profile')}>
+              Open profile <Icon name="arrow-right" size={14} />
+            </button>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }} className="kpi-grid">
         {KPI.map((k) => (
@@ -300,23 +320,47 @@ function HostProfileTab({ profile, onSaved }) {
   return (
     <div className="fade-up" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 36, alignItems: 'start' }}>
       <form className="card-flat" style={{ padding: 32 }} onSubmit={handleSubmit((d) => updateMut.mutate(d))}>
-        <h2 className="h-3 mb-4">Business details</h2>
+        <h2 className="h-3 mb-2">Business details</h2>
+        <p className="text-muted mb-6" style={{ fontSize: 13 }}>
+          Fields marked <span style={{ color: 'var(--danger)' }}>*</span> are required before you can list a property.
+        </p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          <div className="field"><label className="field-label">Legal name</label>
-            <input className="input" {...register('full_name')} />
+          <div className="field">
+            <label className="field-label">Legal name <span style={{ color: 'var(--danger)' }}>*</span></label>
+            <input className="input" placeholder="Your name as on records" {...register('full_name')} />
             {errors.full_name && <small style={{ color: 'var(--danger)' }}>{errors.full_name.message}</small>}
           </div>
-          <div className="field"><label className="field-label">Business name</label>
-            <input className="input" {...register('business_name')} /></div>
-          <div className="field"><label className="field-label">Email</label>
-            <input className="input" defaultValue={profile.email} disabled /></div>
-          <div className="field"><label className="field-label">Phone</label>
-            <input className="input" {...register('phone')} /></div>
-          <div className="field"><label className="field-label">GST number</label>
-            <input className="input" {...register('gst_number')} /></div>
-          <div className="field"><label className="field-label">Payout account</label>
-            <input className="input" {...register('payout_account')} placeholder="Bank account / UPI" /></div>
+          <div className="field">
+            <label className="field-label">Business / brand name <span style={{ color: 'var(--danger)' }}>*</span></label>
+            <input className="input" placeholder="Marigold Hospitality" {...register('business_name')} />
+            {errors.business_name && <small style={{ color: 'var(--danger)' }}>{errors.business_name.message}</small>}
+          </div>
+          <div className="field">
+            <label className="field-label">Email</label>
+            <input className="input" defaultValue={profile.email} disabled />
+            <small className="text-muted" style={{ fontSize: 11 }}>Email is linked to your account and can't be changed here.</small>
+          </div>
+          <div className="field">
+            <label className="field-label">Reception phone <span style={{ color: 'var(--danger)' }}>*</span></label>
+            <input className="input" placeholder="+91 …" {...register('phone')} />
+            {errors.phone && <small style={{ color: 'var(--danger)' }}>{errors.phone.message}</small>}
+          </div>
+          <div className="field">
+            <label className="field-label">GST number</label>
+            <input className="input" placeholder="22ABCDE1234F1Z5" {...register('gst_number')} />
+            {errors.gst_number && <small style={{ color: 'var(--danger)' }}>{errors.gst_number.message}</small>}
+          </div>
+          <div className="field">
+            <label className="field-label">Payout account</label>
+            <input className="input" placeholder="Bank account number or UPI ID" {...register('payout_account')} />
+            {errors.payout_account && <small style={{ color: 'var(--danger)' }}>{errors.payout_account.message}</small>}
+          </div>
         </div>
+        {updateMut.isError && (
+          <p style={{ color: 'var(--danger)', fontSize: 13, marginTop: 16 }}>
+            {updateMut.error?.response?.data?.error || 'Could not save. Please try again.'}
+          </p>
+        )}
         {updateMut.isSuccess && <p className="text-muted mt-4" style={{ fontSize: 12 }}>Saved.</p>}
         <div className="row mt-8" style={{ justifyContent: 'flex-end', gap: 12 }}>
           <button type="submit" className="btn btn-primary" disabled={updateMut.isPending}>

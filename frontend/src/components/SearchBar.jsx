@@ -74,6 +74,7 @@ export default function SearchBar({ initial = {}, onSubmit }) {
   const [guests,   setGuests]   = useState(Number(initial.guests) || 2);
   const [open,     setOpen]     = useState(null); // 'where' | 'dates' | 'guests' | null
   const [hoverDate, setHoverDate] = useState(null);
+  const [error, setError] = useState(null);
   const [monthStart, setMonthStart] = useState(() => startOfMonth(checkin || new Date()));
   const today = useMemo(() => startOfDay(new Date()), []);
 
@@ -102,6 +103,12 @@ export default function SearchBar({ initial = {}, onSubmit }) {
 
   const submit = (e) => {
     e?.preventDefault?.();
+    if (!location.trim()) {
+      setError('Pick or type a destination first.');
+      whereInputRef.current?.focus();
+      return;
+    }
+    setError(null);
     onSubmit?.({
       location,
       checkin:  toISO(checkin),
@@ -118,6 +125,7 @@ export default function SearchBar({ initial = {}, onSubmit }) {
   })();
 
   return (
+    <>
     <form className="search" onSubmit={submit}>
       <label
         ref={whereRef}
@@ -133,8 +141,7 @@ export default function SearchBar({ initial = {}, onSubmit }) {
           className="search-input"
           placeholder="City or region"
           value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          onClick={() => setOpen('where')}
+          onChange={(e) => { setLocation(e.target.value); setError(null); }}
         />
       </label>
 
@@ -174,32 +181,24 @@ export default function SearchBar({ initial = {}, onSubmit }) {
         <span>Search</span>
       </button>
 
-      <Popover anchorRef={whereRef} open={open === 'where'} onClose={() => setOpen(null)} placement="below-left" className="search-popover-where">
-        <div className="where-eyebrow">
-          — {location.trim() ? 'Matches' : 'Popular destinations'}
-        </div>
-        {filteredDests.length === 0 ? (
-          <div className="where-empty">
-            No destinations match “{location.trim()}”.<br/>
-            <span style={{ fontSize: 12 }}>Press Search to look anyway.</span>
-          </div>
-        ) : (
-          filteredDests.map((d) => (
-            <button
-              key={d.name}
-              type="button"
-              className="where-row"
-              onClick={() => { setLocation(d.name); setOpen('dates'); }}
-            >
-              <span className="where-row-icon"><Icon name="pin" size={14} /></span>
-              <span className="where-row-main">
-                <span className="where-row-name">{d.name}</span>
-                <span className="where-row-region">{d.region}</span>
-              </span>
-              <span className="where-row-meta">{d.stays} {d.stays === 1 ? 'stay' : 'stays'}</span>
-            </button>
-          ))
-        )}
+      <Popover
+        anchorRef={whereRef}
+        open={location.trim().length > 0 && filteredDests.length > 0 && open !== 'dates' && open !== 'guests'}
+        onClose={() => setOpen(null)}
+        placement="below-left"
+        className="search-popover-where"
+      >
+        {filteredDests.map((d) => (
+          <button
+            key={d.name}
+            type="button"
+            className="where-row"
+            onClick={() => { setLocation(d.name); setError(null); setOpen('dates'); }}
+          >
+            <span className="where-row-name">{d.name}</span>
+            <span className="where-row-region">{d.region}</span>
+          </button>
+        ))}
       </Popover>
 
       <Popover anchorRef={datesRef} open={open === 'dates'} onClose={() => setOpen(null)} placement="below-left" className="search-popover-dates">
@@ -230,5 +229,9 @@ export default function SearchBar({ initial = {}, onSubmit }) {
         </div>
       </Popover>
     </form>
+    {error && (
+      <div style={{ marginTop: 8, fontSize: 13, color: 'var(--danger)' }}>{error}</div>
+    )}
+    </>
   );
 }

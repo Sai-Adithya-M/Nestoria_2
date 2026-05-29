@@ -1,10 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
 import HotelCard from '../components/HotelCard.jsx';
 import SearchBar from '../components/SearchBar.jsx';
 import Icon from '../components/Icon.jsx';
+import Stepper from '../components/Stepper.jsx';
 import { hotelsAPI } from '../lib/api.js';
 import { useSavedHotels } from '../hooks/useSavedHotels.js';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -25,7 +26,20 @@ export default function HotelsScreen() {
   const [filters, setFilters] = useState({
     minPrice: 0, maxPrice: 30000, minRating: 0, regions: [], amenities: [],
   });
-  const [sort, setSort] = useState('score');
+  const [sort, setSort] = useState(params.get('sort') || 'score');
+
+  useEffect(() => {
+    const next = params.get('sort') || 'score';
+    if (next !== sort) setSort(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params]);
+
+  const setSortAndUrl = (k) => {
+    setSort(k);
+    const next = new URLSearchParams(params);
+    next.set('sort', k);
+    setParams(next, { replace: true });
+  };
   const { isSaved, toggle: toggleSave } = useSavedHotels();
   const { user } = useAuth();
   const routerLocation = useLocation();
@@ -107,20 +121,25 @@ export default function HotelsScreen() {
         <aside className="filters">
           <div className="filter-block">
             <div className="filter-title">Price range</div>
-            <div className="range-slider">
-              <input className="input" type="number" placeholder="Min" value={filters.minPrice || ''}
-                     onChange={(e) => setFilters((f) => ({ ...f, minPrice: +e.target.value || 0 }))} />
-              <span className="text-mono text-muted">—</span>
-              <input className="input" type="number" placeholder="Max" value={filters.maxPrice || ''}
-                     onChange={(e) => setFilters((f) => ({ ...f, maxPrice: +e.target.value || 30000 }))} />
-            </div>
-            <div className="mt-3 row" style={{ gap: 8, flexWrap: 'wrap' }}>
-              {[[0,5000],[5000,10000],[10000,20000],[20000,30000]].map(([a,b]) => (
-                <button key={a} className={`chip ${filters.minPrice===a && filters.maxPrice===b ? 'is-active' : ''}`}
-                        onClick={() => setFilters((f) => ({ ...f, minPrice: a, maxPrice: b }))}>
-                  ₹{a.toLocaleString()}–{b.toLocaleString()}
-                </button>
-              ))}
+            <div className="stack" style={{ '--gap': '10px' }}>
+              <Stepper
+                label="Min"
+                value={filters.minPrice}
+                min={0}
+                max={Math.max(0, filters.maxPrice - 500)}
+                step={500}
+                format={(v) => `₹${v.toLocaleString('en-IN')}`}
+                onChange={(v) => setFilters((f) => ({ ...f, minPrice: v }))}
+              />
+              <Stepper
+                label="Max"
+                value={filters.maxPrice}
+                min={Math.min(filters.minPrice + 500, 50000)}
+                max={50000}
+                step={500}
+                format={(v) => `₹${v.toLocaleString('en-IN')}`}
+                onChange={(v) => setFilters((f) => ({ ...f, maxPrice: v }))}
+              />
             </div>
           </div>
 
@@ -175,7 +194,7 @@ export default function HotelsScreen() {
             <div className="list-results">{isLoading ? 'Loading…' : `${filtered.length} results`}</div>
             <div className="sort">
               {[['score','Featured'],['price_asc','Price ↑'],['price_desc','Price ↓'],['rating','Rating']].map(([k,l]) => (
-                <button key={k} className={`sort-btn ${sort===k ? 'is-active' : ''}`} onClick={() => setSort(k)}>{l}</button>
+                <button key={k} className={`sort-btn ${sort===k ? 'is-active' : ''}`} onClick={() => setSortAndUrl(k)}>{l}</button>
               ))}
             </div>
           </div>

@@ -14,6 +14,7 @@ function statusKey(s) {
   if (s === 'completed') return 'completed';
   if (s === 'confirmed') return 'upcoming';
   if (s === 'pending')   return 'confirmed';
+  if (s === 'cancelled') return 'cancelled';
   return s;
 }
 
@@ -45,8 +46,9 @@ export default function ProfileScreen() {
   const bookings = bookingsQ.data || [];
   const filtered = bookings.filter((b) => {
     const k = statusKey(b.status);
-    if (tab === 'upcoming') return k === 'upcoming' || k === 'confirmed';
-    if (tab === 'past')     return k === 'completed';
+    if (tab === 'upcoming')  return k === 'upcoming' || k === 'confirmed';
+    if (tab === 'past')      return k === 'completed';
+    if (tab === 'cancelled') return k === 'cancelled';
     return true;
   });
 
@@ -70,7 +72,7 @@ export default function ProfileScreen() {
       </div>
 
       <div className="tabs-bar">
-        {[['upcoming','Upcoming'],['past','Past stays'],['profile','Account']].map(([k,l]) => (
+        {[['upcoming','Upcoming'],['past','Past stays'],['cancelled','Cancelled'],['profile','Account']].map(([k,l]) => (
           <button key={k} className={tab === k ? 'is-active' : ''} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -107,15 +109,16 @@ export default function ProfileScreen() {
                 <div className="eyebrow mt-1">total</div>
               </div>
               <div className="stack" style={{ '--gap': '8px' }}>
-                <button className="btn btn-primary btn-sm" onClick={() => navigate(`/hotel/${b.hotel_slug}`)}>View</button>
-                {statusKey(b.status) === 'completed'
-                  ? <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/hotel/${b.hotel_slug}`)}>Rebook</button>
-                  : (
-                    <button className="btn btn-ghost btn-sm" disabled={cancelMut.isPending}
-                            onClick={() => { if (confirm('Cancel this booking?')) cancelMut.mutate(b.id); }}>
-                      {cancelMut.isPending ? '…' : 'Cancel'}
-                    </button>
-                  )}
+                <button className="btn btn-primary btn-sm" onClick={() => navigate(`/reservations/${b.id}`)}>View</button>
+                {statusKey(b.status) === 'completed' && (
+                  <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/hotel/${b.hotel_slug}`)}>Rebook</button>
+                )}
+                {(statusKey(b.status) === 'upcoming' || statusKey(b.status) === 'confirmed') && (
+                  <button className="btn btn-ghost btn-sm" disabled={cancelMut.isPending}
+                          onClick={() => { if (confirm('Cancel this booking?')) cancelMut.mutate(b.id); }}>
+                    {cancelMut.isPending ? '…' : 'Cancel'}
+                  </button>
+                )}
               </div>
             </div>
           ))}

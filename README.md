@@ -39,6 +39,27 @@
 
 ---
 
+## What's new
+
+Recent rounds of polish — captured here so the docs match the code:
+
+- **Server-side favourites** — saved hotels persist per (user_id, role) in `saved_hotels`; works for customers and hosts. (`database/006_saved_hotels.sql`)
+- **Reservation detail screen** at `/reservations/:id` — booking ref, dates, receipt, cancel-from-here.
+- **Cancelled stays remain visible** in the profile under a new Cancelled tab — no more silent drops.
+- **Payment terminal simulation** — masked card / expiry / CVV inputs and an authorising → contacting-bank → approved overlay (UPI variant too).
+- **Real hotel map** — `latitude`/`longitude` on `hotels` (`database/007_hotel_coords.sql`) rendered with **Leaflet + OpenStreetMap tiles** on the customer detail screen, and an interactive click-to-drop picker for hosts during property creation.
+- **Per-room name + special amenities** — rooms have a display `name` and a free-text `special_amenities` field (`database/008_room_extras.sql`); shown as chips on the public detail screen.
+- **Host onboarding gate** — hosts must fill `business_name` + `phone` before listing a property; both the wizard and the backend enforce it. Standard public header now applies to hosts too.
+- **Search redesign** — type-only Where popover, validation on empty submit, real interactive date-range calendar, guest stepper.
+- **Footer "Featured stays" / "Top rated"** links now actually sort the explore page.
+- **Price stepper** in the filter rail replaces the old number inputs + presets.
+- **Year founded** corrected to 2024 across all pages.
+- **Badge rename** — `Editor's pick` → `Hand-picked` to disambiguate from the editorial section heading.
+- **Re-curated imagery** — `scripts/image-manifest.js` is the single source of truth for the 58 demo photos; rerun `scripts/upload-images.js` to push fresh images to Supabase and regenerate `database/005_seed_images.sql`. Detail-screen gallery no longer labels its 4 slots — each property shows its 4 best shots.
+- **Login UX** — backend returns a distinct 401 for Google-only accounts (`"This account uses Google sign-in"`). The login form appends a role-toggle hint when the generic "Invalid credentials" comes back. New `scripts/check-seed-passwords.js` verifies every seeded host + customer can log in with `password123`.
+
+---
+
 ## Why Nestoria
 
 Most hotel booking apps look — and feel — like booking apps. Loud price banners, "8 people are looking at this hotel right now", tabs full of upsells. They're optimised for transactional volume, not for the slow, considered way people actually plan trips.
@@ -56,13 +77,14 @@ Built around three principles:
 ## What it does at a glance
 
 - **Browse** 8+ curated stays across India — Udaipur, Goa, Coorg, Munnar, Jaisalmer, Auroville
-- **Search and filter** by location, price range, rating, region, or amenity
-- **Read** rich hotel detail pages with 5 tabs: Overview, Amenities, Rooms, Reviews, Location (with SVG map)
-- **Book** in a 3-step wizard with guest details, payment method selection, and printable confirmation
+- **Search and filter** by location, price stepper, rating, region, or amenity — with a type-to-suggest Where popover and a real date-range calendar
+- **Read** rich hotel detail pages with 5 tabs: Overview, Amenities, Rooms, Reviews, Location (live Leaflet map at the real lat/lng)
+- **Save** hotels to a server-side favourites list that survives device switches and works for customers and hosts
+- **Book** in a 3-step wizard with a simulated payment terminal (card / UPI / pay-at-hotel) and a per-reservation detail page at `/reservations/:id`
 - **Review** completed stays — separate ratings for the hotel and the room, with auto-recomputed averages
 - **Sign in** with email + password (bcrypt) or Google (Google Identity Services)
-- **Host workspace** — 5-tab dashboard (Overview, Properties, Bookings, Earnings, Profile) with KPI cards, animated revenue chart, occupancy bars, and a filterable bookings table
-- **List a property** via a 3-step wizard — basics, address + amenities, rooms (with image upload to Supabase Storage)
+- **Host workspace** — 5-tab dashboard (Overview, Properties, Bookings, Earnings, Profile) with KPI cards, revenue chart, and a filterable bookings table; onboarding banner gates listing until the host's business profile is complete
+- **List a property** via a 3-step wizard — basics, address + amenities + **interactive Leaflet map pinpoint**, rooms (with name, type, special amenities, and image upload to Supabase Storage); publish disabled until at least one room exists
 - **Switch themes** — light / dark with FOUC-free initial render, plus 5 swappable accent palettes (Terracotta, Forest, Ink, Saffron, Plum)
 
 ---
@@ -79,6 +101,7 @@ Built around three principles:
 | Routing | `react-router-dom` v6 | Industry standard |
 | Data layer | `@tanstack/react-query` | Caching, dedup, optimistic updates |
 | Forms | `react-hook-form` + `zod` | Type-safe forms, zero re-render cost |
+| Maps | `leaflet` + OpenStreetMap tiles | No API key, vector-quality, ~40 KB gzipped |
 | Styling | Hand-rolled CSS with OKLCH variables | Editorial design needs hand-tuned colour, not utility classes |
 | Hosting | Render (web + static + Postgres) | Free tier, blueprint-driven |
 
@@ -155,7 +178,23 @@ npm run dev
 # → http://localhost:5173
 ```
 
-You can sign in with any seeded customer email (`customer1@nestoria.dev` … `customer50@nestoria.dev`) or one of the three hosts (`vikram@marigold.in`, `priya@casapamparo.in`, `arjun@cardamom.in`). The password for every seeded account is `password123`.
+### Sample credentials
+
+Every account loaded by `004_seed.sql` uses the password **`password123`** (bcrypt cost 10). Toggle **"I'm travelling"** on the sign-in screen for customer accounts and **"I'm hosting"** for host accounts — the role determines which table is queried, so the wrong toggle returns "Invalid credentials" even with the right email.
+
+| Role | Email | Password |
+|---|---|---|
+| Host | `vikram@marigold.in` | `password123` |
+| Host | `priya@casapamparo.in` | `password123` |
+| Host | `arjun@cardamom.in` | `password123` |
+| Customer | `customer1@nestoria.dev` … `customer50@nestoria.dev` | `password123` |
+
+Verify the hashes load cleanly any time with:
+
+```sh
+NODE_PATH=backend/node_modules node scripts/check-seed-passwords.js
+# expect:  53 pass · 0 fail · 0 skipped (Google-only)
+```
 
 > 💡 **Don't want sample data?** Skip step `004_seed.sql`. You can register fresh accounts through the UI.
 >

@@ -1,4 +1,5 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 
@@ -11,6 +12,67 @@ const TAX = 0.18;
 
 function nightsBetween(a, b) {
   return Math.max(1, Math.round((new Date(b) - new Date(a)) / 86400000));
+}
+
+function formatCardNumber(raw) {
+  const digits = String(raw).replace(/\D/g, '').slice(0, 16);
+  return digits.replace(/(.{4})/g, '$1 ').trim();
+}
+function formatExpiry(raw) {
+  const digits = String(raw).replace(/\D/g, '').slice(0, 4);
+  if (digits.length < 3) return digits;
+  return `${digits.slice(0, 2)} / ${digits.slice(2)}`;
+}
+function cvvOnly(raw) {
+  return String(raw).replace(/\D/g, '').slice(0, 4);
+}
+
+function PaymentTerminal({ method, onDone, onCancel }) {
+  const stages = method === 'card'
+    ? ['Authorising card…', 'Contacting issuing bank…', 'Approved']
+    : ['Generating collect request…', 'Awaiting approval on your UPI app…', 'Confirmed'];
+  const [stage, setStage] = useState(0);
+
+  useEffect(() => {
+    const timings = [800, 1100, 600];
+    const t = setTimeout(() => {
+      if (stage < stages.length - 1) setStage((s) => s + 1);
+      else onDone?.();
+    }, timings[stage] || 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage]);
+
+  const last = stage === stages.length - 1;
+
+  return createPortal(
+    <div className="terminal-backdrop" role="dialog" aria-modal="true">
+      <div className="terminal-card fade-up">
+        <div className="terminal-brand">
+          <Icon name="lock" size={14} /> Secure payment terminal
+        </div>
+        <div className="terminal-stage">
+          {last ? (
+            <div className="terminal-tick">
+              <Icon name="check" size={32} />
+            </div>
+          ) : (
+            <div className="terminal-spinner" aria-hidden />
+          )}
+          <div className="serif terminal-stage-label">{stages[stage]}</div>
+          <div className="terminal-trail">
+            {stages.map((s, i) => (
+              <span key={s} className={`terminal-dot ${i <= stage ? 'is-done' : ''}`} />
+            ))}
+          </div>
+        </div>
+        {!last && onCancel && (
+          <button type="button" className="btn btn-ghost btn-sm terminal-cancel" onClick={onCancel}>Cancel</button>
+        )}
+      </div>
+    </div>,
+    document.body
+  );
 }
 
 export default function BookingScreen() {
@@ -26,6 +88,7 @@ export default function BookingScreen() {
 
   const [step, setStep] = useState(0);
   const [bookingId, setBookingId] = useState(null);
+  const [terminalOpen, setTerminalOpen] = useState(false);
   const [form, setForm] = useState({
     fullName: user?.full_name || '',
     email:    user?.email || '',
@@ -145,21 +208,24 @@ export default function BookingScreen() {
               {form.method === 'card' && (
                 <>
                   <div className="field"><label className="field-label">Card number</label>
-                    <input className="input" placeholder="•••• •••• •••• ••••" value={form.card} onChange={(e) => upd('card', e.target.value)} /></div>
+                    <input className="input text-mono" placeholder="1234 5678 9012 3456" inputMode="numeric"
+                           value={form.card} onChange={(e) => upd('card', formatCardNumber(e.target.value))} /></div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
                     <div className="field"><label className="field-label">Expiry</label>
-                      <input className="input" placeholder="MM / YY" value={form.expiry} onChange={(e) => upd('expiry', e.target.value)} /></div>
+                      <input className="input text-mono" placeholder="MM / YY" inputMode="numeric"
+                             value={form.expiry} onChange={(e) => upd('expiry', formatExpiry(e.target.value))} /></div>
                     <div className="field"><label className="field-label">CVV</label>
-                      <input className="input" placeholder="•••" value={form.cvv} onChange={(e) => upd('cvv', e.target.value)} /></div>
+                      <input className="input text-mono" placeholder="•••" inputMode="numeric" type="password"
+                             value={form.cvv} onChange={(e) => upd('cvv', cvvOnly(e.target.value))} /></div>
                   </div>
                   <div className="field mt-4"><label className="field-label">Name on card</label>
-                    <input className="input" value={form.name} onChange={(e) => upd('name', e.target.value)} /></div>
+                    <input className="input" placeholder="As shown on card" value={form.name} onChange={(e) => upd('name', e.target.value)} /></div>
                 </>
               )}
 
               {form.method === 'upi' && (
                 <div className="field"><label className="field-label">UPI ID</label>
-                  <input className="input" placeholder="yourname@bank" /></div>
+                  <input className="input" placeholder="yourname@bank" value={form.upi || ''} onChange={(e) => upd('upi', e.target.value)} /></div>
               )}
 
               {form.method === 'paylater' && (
@@ -188,7 +254,10 @@ export default function BookingScreen() {
 
               <div className="row mt-8" style={{ justifyContent: 'space-between' }}>
                 <button className="btn btn-ghost" onClick={() => setStep(0)}>Back</button>
-                <button className="btn btn-accent btn-lg" onClick={() => createMut.mutate()} disabled={createMut.isPending}>
+                <button className="btn btn-accent btn-lg" onClick={() => {
+                  if (form.method === 'paylater') createMut.mutate();
+                  else setTerminalOpen(true);
+                }} disabled={createMut.isPending || terminalOpen}>
                   {createMut.isPending ? 'Confirming…' : `Confirm reservation · ₹${total.toLocaleString()}`}
                 </button>
               </div>
@@ -214,8 +283,10 @@ export default function BookingScreen() {
                 </div>
               </div>
               <div className="row mt-8" style={{ justifyContent: 'center', gap: 12 }}>
-                <button className="btn btn-ghost" onClick={() => navigate('/profile')}>View in profile</button>
-                <button className="btn btn-primary" onClick={() => navigate('/')}>Back to home</button>
+                <button className="btn btn-primary" onClick={() => navigate(`/reservations/${bookingId}`)}>
+                  View reservation <Icon name="arrow-right" size={14} />
+                </button>
+                <button className="btn btn-ghost" onClick={() => navigate('/')}>Back to home</button>
               </div>
             </div>
           )}
@@ -250,6 +321,14 @@ export default function BookingScreen() {
           <div className="summary-row total"><span>Total</span><span className="text-mono">₹{total.toLocaleString()}</span></div>
         </aside>
       </div>
+
+      {terminalOpen && (
+        <PaymentTerminal
+          method={form.method}
+          onDone={() => { setTerminalOpen(false); createMut.mutate(); }}
+          onCancel={() => setTerminalOpen(false)}
+        />
+      )}
     </div>
   );
 }

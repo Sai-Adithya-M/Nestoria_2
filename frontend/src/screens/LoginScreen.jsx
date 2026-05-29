@@ -28,7 +28,18 @@ export default function LoginScreen() {
     navigate(next || (role === 'host' ? '/host/dashboard' : '/'), { replace: true });
   };
 
-  const loginMut  = useMutation({ mutationFn: (body) => authAPI.login(body),    onSuccess, onError: (e) => setErr(e.response?.data?.error || 'Login failed') });
+  const loginMut  = useMutation({
+    mutationFn: (body) => authAPI.login(body),
+    onSuccess,
+    onError: (e) => {
+      const raw = e.response?.data?.error || 'Login failed';
+      // Generic "Invalid credentials" usually means wrong role toggle on a freshly-seeded DB.
+      const hint = raw === 'Invalid credentials'
+        ? ` Double-check the email, password, and the "I'm travelling / I'm hosting" toggle above.`
+        : '';
+      setErr(raw + hint);
+    },
+  });
   const signupMut = useMutation({ mutationFn: (body) => authAPI.register(body), onSuccess, onError: (e) => setErr(e.response?.data?.error || 'Signup failed') });
   const googleMut = useMutation({ mutationFn: (body) => authAPI.google(body),   onSuccess, onError: (e) => setErr(e.response?.data?.error || 'Google sign-in failed') });
 

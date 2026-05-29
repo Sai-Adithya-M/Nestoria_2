@@ -15,13 +15,6 @@ export default function Header({ theme, setTheme }) {
   const navigate = useNavigate();
   const isHost = user?.role === 'host';
 
-  const hostLinks = isHost ? [
-    { to: '/host/dashboard',                     label: 'Dashboard' },
-    { to: '/host/dashboard?tab=properties',      label: 'Properties' },
-    { to: '/host/dashboard?tab=bookings',        label: 'Bookings' },
-    { to: '/host/dashboard?tab=earnings',        label: 'Earnings' },
-  ] : LINKS;
-
   return (
     <header className="header">
       <div className="container-wide header-inner">
@@ -29,7 +22,7 @@ export default function Header({ theme, setTheme }) {
           <span className="logo-mark">Nestoria<span className="logo-dot" /></span>
         </Link>
         <nav className="nav-links" style={{ display: window.innerWidth < 720 ? 'none' : 'flex' }}>
-          {hostLinks.map((l) => (
+          {LINKS.map((l) => (
             <NavLink key={l.to} to={l.to} end className={({ isActive }) => `nav-link ${isActive ? 'is-active' : ''}`}>
               {l.label}
             </NavLink>

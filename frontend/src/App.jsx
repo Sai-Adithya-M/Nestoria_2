@@ -12,6 +12,7 @@ import DetailScreen      from './screens/DetailScreen.jsx';
 import BookingScreen     from './screens/BookingScreen.jsx';
 import LoginScreen       from './screens/LoginScreen.jsx';
 import ProfileScreen     from './screens/ProfileScreen.jsx';
+import ReservationScreen from './screens/ReservationScreen.jsx';
 import HostScreen        from './screens/HostScreen.jsx';
 import AddRoomsScreen    from './screens/AddRoomsScreen.jsx';
 import AboutScreen       from './screens/AboutScreen.jsx';
@@ -39,6 +40,7 @@ export default function App() {
             <Route path="/booking"         element={<ProtectedRoute requireRole="customer"><BookingScreen /></ProtectedRoute>} />
             <Route path="/login"           element={<LoginScreen />} />
             <Route path="/profile"         element={<ProtectedRoute requireRole="customer"><ProfileScreen /></ProtectedRoute>} />
+            <Route path="/reservations/:id" element={<ProtectedRoute requireRole="customer"><ReservationScreen /></ProtectedRoute>} />
             <Route path="/host/dashboard"  element={<ProtectedRoute requireRole="host"><HostScreen /></ProtectedRoute>} />
             <Route path="/host/profile"    element={<ProtectedRoute requireRole="host"><HostScreen tab="profile" /></ProtectedRoute>} />
             <Route path="/host/add-rooms"  element={<ProtectedRoute requireRole="host"><AddRoomsScreen /></ProtectedRoute>} />

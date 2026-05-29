@@ -60,6 +60,9 @@ export const profileAPI = {
   get:           ()       => api.get('/profile').then((r) => r.data),
   update:        (body)   => api.put('/profile', body).then((r) => r.data),
   changePassword:(body)   => api.put('/profile/change-password', body).then((r) => r.data),
+  getSaved:      ()       => api.get('/profile/saved').then((r) => r.data),
+  addSaved:      (id)     => api.post(`/profile/saved/${id}`).then((r) => r.data),
+  removeSaved:   (id)     => api.delete(`/profile/saved/${id}`).then((r) => r.data),
 };
 export const hostAPI = {
   properties:    ()       => api.get('/host/properties').then((r) => r.data),

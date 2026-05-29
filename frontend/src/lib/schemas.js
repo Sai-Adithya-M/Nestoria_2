@@ -20,9 +20,9 @@ export const profileSchema = z.object({
 });
 
 export const hostProfileSchema = z.object({
-  full_name: z.string().min(2),
-  phone: z.string().optional().or(z.literal('')),
-  business_name: z.string().optional().or(z.literal('')),
+  full_name: z.string().min(2, 'Your name is required'),
+  phone: z.string().min(8, 'Reception phone required'),
+  business_name: z.string().min(2, 'Business / brand name required'),
   gst_number: z.string().optional().or(z.literal('')),
   payout_account: z.string().optional().or(z.literal('')),
 });
@@ -45,24 +45,28 @@ export const reviewSchema = z.object({
 export const hotelBasicsSchema = z.object({
   name: z.string().min(2, 'Hotel name required'),
   slug: z.string().min(2, 'A URL slug is required').regex(/^[a-z0-9-]+$/, 'Lowercase letters, numbers, dashes only'),
-  region: z.string().min(1),
-  city: z.string().min(1),
+  region: z.string().min(1, 'Region required'),
+  city: z.string().min(1, 'City required'),
   description: z.string().min(20, 'Tell guests a bit more about it (20+ chars)'),
   hue: z.enum(['sand', 'ocean', 'forest', 'dusk', 'warm', 'cool']).default('sand'),
 });
 export const hotelAddressSchema = z.object({
-  address: z.string().min(5),
+  address: z.string().min(5, 'Address required'),
   phone: z.string().optional().or(z.literal('')),
   checkin_time: z.string().default('15:00'),
   checkout_time: z.string().default('11:00'),
   amenities: z.array(z.string()).default([]),
+  latitude: z.coerce.number().refine((v) => !Number.isNaN(v), 'Drop a pin on the map').optional(),
+  longitude: z.coerce.number().refine((v) => !Number.isNaN(v), 'Drop a pin on the map').optional(),
 });
 
 export const roomSchema = z.object({
-  type: z.string().min(2),
+  name: z.string().min(2, 'Room name required'),
+  type: z.string().min(2, 'Room type required'),
   view: z.string().optional().or(z.literal('')),
   beds: z.string().optional().or(z.literal('')),
   size_sqm: z.coerce.number().int().min(1).optional(),
   price_per_night: z.coerce.number().int().min(1, 'Price required'),
   hue: z.enum(['sand', 'ocean', 'forest', 'dusk', 'warm', 'cool']).default('sand'),
+  special_amenities: z.string().min(2, 'List at least one special amenity (comma separated)'),
 });

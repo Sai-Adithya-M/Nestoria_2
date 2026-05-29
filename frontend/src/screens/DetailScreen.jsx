@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import Photo from '../components/Photo.jsx';
 import Icon from '../components/Icon.jsx';
 import Stepper from '../components/Stepper.jsx';
+import HotelMap from '../components/HotelMap.jsx';
 import { hotelsAPI } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useSavedHotels } from '../hooks/useSavedHotels.js';
@@ -110,7 +111,7 @@ export default function DetailScreen() {
         <div>
           <div className="row" style={{ gap: 10, marginBottom: 12 }}>
             {hotel.badge && <span className="tag">{hotel.badge}</span>}
-            <span className="eyebrow">{hotel.region} · est. 2014</span>
+            <span className="eyebrow">{hotel.region}</span>
           </div>
           <h1 className="h-1">{hotel.name}</h1>
           <div className="row mt-3" style={{ gap: 18, flexWrap: 'wrap' }}>
@@ -140,9 +141,9 @@ export default function DetailScreen() {
       </div>
 
       <div className="detail-gallery">
-        <div><Photo hue={hotel.hue} src={hotel.hero_image_url} label="hero · 8:5" /></div>
+        <div><Photo hue={hotel.hue} src={hotel.hero_image_url} /></div>
         {HUES.map((h, i) => (
-          <div key={h}><Photo hue={hotel.gallery?.[i]?.url ? undefined : h} src={hotel.gallery?.[i]?.url} label={['suite','garden','pool','dining'][i]} /></div>
+          <div key={h}><Photo hue={hotel.gallery?.[i]?.url ? undefined : h} src={hotel.gallery?.[i]?.url} /></div>
         ))}
       </div>
 
@@ -203,12 +204,13 @@ export default function DetailScreen() {
                   <div className="room" key={r.id}>
                     <div className="room-img"><Photo hue={r.hue} src={r.image_url} /></div>
                     <div className="room-content">
-                      <h3 className="room-title">{r.type}</h3>
-                      <span className="text-muted" style={{ fontSize: 13 }}>{[r.view, r.beds, r.size_sqm && `${r.size_sqm} sqm`].filter(Boolean).join(' · ')}</span>
+                      <h3 className="room-title">{r.name || r.type}</h3>
+                      <span className="text-muted" style={{ fontSize: 13 }}>{[r.type !== (r.name || r.type) ? r.type : null, r.view, r.beds, r.size_sqm && `${r.size_sqm} sqm`].filter(Boolean).join(' · ')}</span>
                       <div className="room-feats mt-3">
+                        {(r.special_amenities ? String(r.special_amenities).split(',').map((s) => s.trim()).filter(Boolean) : []).map((a) => (
+                          <span key={a} className="chip">{a}</span>
+                        ))}
                         <span className="chip">Free cancellation</span>
-                        <span className="chip">Breakfast</span>
-                        <span className="chip">Wi-Fi</span>
                       </div>
                     </div>
                     <div className="room-action">
@@ -261,28 +263,32 @@ export default function DetailScreen() {
           {activeTab === 'location' && (
             <section className="fade-up">
               <div className="eyebrow mb-4">— On the map</div>
-              <div style={{ aspectRatio: '16/9', borderRadius: 16, overflow: 'hidden', position: 'relative', background: 'var(--bg-inset)', border: '1px solid var(--line)' }}>
-                <svg width="100%" height="100%" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice">
-                  <defs>
-                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--line)" strokeWidth="1"/>
-                    </pattern>
-                  </defs>
-                  <rect width="800" height="450" fill="var(--bg-inset)" />
-                  <rect width="800" height="450" fill="url(#grid)" />
-                  <path d="M50,200 Q200,100 380,160 T720,180 L740,300 Q500,360 280,330 T80,310 Z" fill="var(--bg)" stroke="var(--line-strong)" strokeWidth="1"/>
-                  <path d="M0,300 Q200,360 400,330 T800,340 L800,450 L0,450 Z" fill="color-mix(in oklab, var(--accent-2) 14%, transparent)" />
-                  <g transform="translate(400, 220)">
-                    <circle r="38" fill="color-mix(in oklab, var(--accent) 18%, transparent)" />
-                    <circle r="22" fill="color-mix(in oklab, var(--accent) 30%, transparent)" />
-                    <circle r="8" fill="var(--accent)" />
-                  </g>
-                </svg>
-                <div style={{ position: 'absolute', left: 20, bottom: 20, padding: '10px 14px', background: 'var(--bg-elev)', border: '1px solid var(--line)', borderRadius: 12, fontSize: 13 }}>
+              <div style={{ borderRadius: 16, overflow: 'hidden', position: 'relative', background: 'var(--bg-inset)', border: '1px solid var(--line)' }}>
+                {hotel.latitude != null && hotel.longitude != null ? (
+                  <HotelMap lat={hotel.latitude} lng={hotel.longitude} label={hotel.name} height={420} />
+                ) : (
+                  <div style={{ aspectRatio: '16/9', display: 'grid', placeItems: 'center', color: 'var(--ink-3)', fontSize: 13 }}>
+                    Map coordinates not available for this property.
+                  </div>
+                )}
+                <div style={{ position: 'absolute', left: 20, bottom: 20, padding: '10px 14px', background: 'var(--bg-elev)', border: '1px solid var(--line)', borderRadius: 12, fontSize: 13, pointerEvents: 'none', zIndex: 500 }}>
                   <div style={{ fontWeight: 500 }}>{hotel.name}</div>
                   <div className="text-muted" style={{ fontSize: 12 }}>{hotel.city}, {hotel.region}</div>
                 </div>
               </div>
+              {hotel.latitude != null && hotel.longitude != null && (
+                <div className="mt-4">
+                  <a
+                    href={`https://www.openstreetmap.org/?mlat=${hotel.latitude}&mlon=${hotel.longitude}#map=15/${hotel.latitude}/${hotel.longitude}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="eyebrow"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--accent)', borderBottom: '1px solid var(--accent)', paddingBottom: 2 }}
+                  >
+                    Open in OpenStreetMap <Icon name="arrow-up-right" size={12} />
+                  </a>
+                </div>
+              )}
             </section>
           )}
         </main>

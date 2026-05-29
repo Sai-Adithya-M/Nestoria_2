@@ -13,7 +13,7 @@ export default function Footer() {
             <h4>Discover</h4>
             <Link to="/hotels">Destinations</Link>
             <Link to="/hotels?sort=score">Featured stays</Link>
-            <Link to="/hotels?sort=rating">Editor's picks</Link>
+            <Link to="/hotels?sort=rating">Top rated</Link>
             <Link to="/journal">Journal</Link>
           </div>
           <div className="footer-col">

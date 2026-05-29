@@ -38,7 +38,7 @@ INSERT INTO hosts (email, password_hash, full_name, phone, business_name, kyc_ve
 INSERT INTO hotels (host_id, slug, name, region, city, address, description, checkin_time, checkout_time, phone, hue, badge) VALUES
     (1, 'marigold-house',      'The Marigold House',     'Rajasthan', 'Udaipur',     '12 Lake Palace Road, Udaipur 313001',
         'A restored 18th-century haveli overlooking Lake Pichola. Eight suites, an open-air courtyard restaurant, and a rooftop pool framed by hand-carved jharokhas.',
-        '15:00', '11:00', '+91 294 555 0142', 'sand', 'Editor''s pick'),
+        '15:00', '11:00', '+91 294 555 0142', 'sand', 'Hand-picked'),
     (1, 'aravali-retreat',     'Aravali Retreat',        'Rajasthan', 'Kumbhalgarh', 'Aravali Ridge, Kumbhalgarh 313325',
         'A low-slung modernist retreat set into a pine ridge, three hours from Udaipur. Salt-water pool, observatory deck, plant-forward menu.',
         '14:00', '11:00', '+91 294 555 0188', 'forest', 'New'),
@@ -50,7 +50,7 @@ INSERT INTO hotels (host_id, slug, name, region, city, address, description, che
         '14:00', '10:30', '+91 4865 555 0301', 'forest', NULL),
     (2, 'the-salt-house',      'The Salt House',         'Goa',       'Mandrem',     'Junas Waddo, Mandrem 403527',
         'A whitewashed beach house with five suites, an outdoor shower garden, and a saltwater plunge pool ten steps from the Arabian Sea.',
-        '15:00', '11:00', '+91 832 555 0274', 'ocean', 'Editor''s pick'),
+        '15:00', '11:00', '+91 832 555 0274', 'ocean', 'Hand-picked'),
     (1, 'silk-route-inn',      'Silk Route Inn',         'Rajasthan', 'Jaisalmer',   'Inside Jaisalmer Fort, Jaisalmer 345001',
         'Inside the living fort, a six-room guesthouse run by a third-generation family. Sandstone walls, brass details, a rooftop reading nook.',
         '13:00', '11:00', '+91 2992 555 0411', 'sand', NULL),

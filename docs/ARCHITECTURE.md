@@ -117,9 +117,9 @@ frontend/
 └── src/
     ├── main.jsx             React + QueryClientProvider + GoogleOAuthProvider + AuthProvider
     ├── App.jsx              BrowserRouter + Header + Footer + TweaksPanel + routes
-    ├── styles/index.css     editorial design system (902 LOC, CSS variables)
-    ├── components/          Header · Footer · SearchBar · HotelCard · Icon · Photo · Stepper · ThemeToggle · TweaksPanel · ProtectedRoute
-    ├── screens/             one file per route (Home, Hotels, Detail, Booking, Login, Profile, Host, AddRooms, NotFound)
+    ├── styles/index.css     editorial design system (~1 kLOC, CSS variables)
+    ├── components/          Header · Footer · SearchBar · HotelCard · Icon · Photo · Stepper · ThemeToggle · TweaksPanel · ProtectedRoute · Popover · HotelMap
+    ├── screens/             one file per route (Home, Hotels, Detail, Booking, Reservation, Login, Profile, Host, AddRooms, About, Journal, …)
     ├── hooks/               useTheme · useTweaks (accent palette)
     ├── lib/
     │   ├── api.js           axios instance + namespaced endpoints (authAPI, hotelsAPI, …)
@@ -146,6 +146,29 @@ Benefits over the previous `useState + useEffect` style:
 - Automatic request deduplication.
 - Cache survives navigation — clicking back to a detail screen renders instantly while a background refetch runs.
 - Built-in `isLoading` / `isError` / `isFetching` states.
+
+### Reusable overlay + map primitives
+
+Two small components encapsulate patterns that recur across the app:
+
+- **`Popover.jsx`** — renders children into a `document.body` portal, positions itself with `position: fixed` from an anchor ref's `getBoundingClientRect()`, re-positions on `scroll`/`resize`, and handles outside-click + Escape. Used by the SearchBar's Where / Dates / Guests popovers; the same primitive will host future inline overlays.
+- **`HotelMap.jsx`** — wraps Leaflet + OSM tiles. In read-only mode it renders a fixed marker for the customer detail screen. In interactive mode it accepts an `onChange({ lat, lng })` callback for the host's location-picker step.
+
+### Saved-hotels (favourites) flow
+
+Hearts everywhere (HomeScreen / HotelsScreen / DetailScreen) route through the **`useSavedHotels`** hook. The hook is TanStack-backed:
+
+- A single `useQuery(['saved'])` fetches `/api/profile/saved` on mount; cached for 60 s.
+- `toggle(id)` issues a `POST` or `DELETE` and **optimistically** updates the cache before the request returns, then revalidates on settle.
+- Anonymous calls short-circuit at the screen-level (`if (!user) navigate('/login?next=...')`) so the hook never has to deal with unauthenticated state.
+
+### Payment terminal overlay
+
+The booking wizard's Confirm step opens a portal-mounted `<PaymentTerminal>` (centred fixed card with backdrop blur). It steps through three labelled stages on timers (`Authorising → Contacting bank → Approved`, with a UPI variant), then triggers the booking mutation. The mutation success handler advances the wizard to the confirmation step. Pay-at-hotel skips the terminal entirely.
+
+### Reservation detail route
+
+`/reservations/:id` is a dedicated screen for a single booking — hotel summary, dates, receipt, cancel button. The confirmation step's "View reservation" button and the profile's per-booking "View" button both push here. The backing endpoint `GET /api/bookings/:id` returns enough fields (hotel hero, address, phone, has_review) to render the page without a second hotel fetch.
 
 ### Forms
 
