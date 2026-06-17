@@ -1492,6 +1492,16 @@ h1, h2, h3, h4 { margin: 0; font-weight: 500; letter-spacing: -0.02em; }
   .cta-card > * { margin-inline: auto; }
 }
 
+/* About — team grid */
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  max-width: 680px;
+  margin: 0 auto;
+}
+@media (max-width: 640px) { .team-grid { grid-template-columns: 1fr; } }
+
 /* About story two-column body */
 .about-story-grid {
   display: grid; grid-template-columns: 1fr 1.4fr; gap: var(--space-7); align-items: start;

@@ -20,6 +20,7 @@ export default function Footer() {
             <h4>Company</h4>
             <Link to="/about">About</Link>
             <Link to="/become-host">Become a host</Link>
+            <a href="https://github.com/Sai-Adithya-M/Nestoria_2" target="_blank" rel="noreferrer">GitHub</a>
           </div>
           <div className="footer-col">
             <h4>Support</h4>

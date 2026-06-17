@@ -5,6 +5,7 @@ import Header from './components/Header.jsx';
 import Footer from './components/Footer.jsx';
 import TweaksPanel from './components/TweaksPanel.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
+import ScrollToTop from './components/ScrollToTop.jsx';
 
 import HomeScreen        from './screens/HomeScreen.jsx';
 import HotelsScreen      from './screens/HotelsScreen.jsx';
@@ -31,6 +32,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <div className="app">
+        <ScrollToTop />
         <Header theme={theme} setTheme={setTheme} />
         <main className="main">
           <Routes>

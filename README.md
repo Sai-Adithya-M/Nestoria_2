@@ -557,7 +557,7 @@ There's no test suite yet (it's on the roadmap). For now, manually verify the go
 
 ---
 
-Created and maintained by **[Avaneesh](https://github.com/Avaneesh40585)**.
+Created and maintained by **[Avaneesh](https://github.com/Avaneesh40585)** and **[Adithya](https://github.com/Sai-Adithya-M)**.
 
 ## License
 

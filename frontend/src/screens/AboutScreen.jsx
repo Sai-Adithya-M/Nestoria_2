@@ -20,12 +20,20 @@ const VALUES = [
   },
 ];
 
-const BUILDER = {
-  name: 'Avaneesh',
-  role: 'Builder · Maintainer',
-  handle: 'Avaneesh40585',
-  bio: 'Designed and built Nestoria end-to-end — backend, frontend, database, infrastructure.',
-};
+const BUILDERS = [
+  {
+    name: 'Avaneesh',
+    role: 'Builder · Maintainer',
+    handle: 'Avaneesh40585',
+    bio: 'Designed and built Nestoria end-to-end — backend, frontend, database, infrastructure.',
+  },
+  {
+    name: 'Adithya',
+    role: 'Builder · Maintainer',
+    handle: 'Sai-Adithya-M',
+    bio: 'Full-stack developer contributing to Nestoria\'s codebase and design system.',
+  },
+];
 
 export default function AboutScreen() {
   return (
@@ -74,7 +82,7 @@ export default function AboutScreen() {
             <div><div className="stat-num">8</div><div className="stat-label">Curated stays</div></div>
             <div><div className="stat-num">5</div><div className="stat-label">Destinations</div></div>
             <div><div className="stat-num">2024</div><div className="stat-label">Year founded</div></div>
-            <div><div className="stat-num">1</div><div className="stat-label">Person</div></div>
+            <div><div className="stat-num">2</div><div className="stat-label">Builders</div></div>
           </div>
         </div>
       </section>
@@ -125,24 +133,28 @@ export default function AboutScreen() {
         <div className="container-wide">
           <div className="section-head">
             <div className="section-title">
-              <div className="eyebrow mb-3">— One person</div>
-              <h2 className="h-1">Who runs Nestoria.</h2>
+              <div className="eyebrow mb-3">— The team</div>
+              <h2 className="h-1">Who builds Nestoria.</h2>
             </div>
           </div>
-          <div className="card-flat" style={{ padding: 36, maxWidth: 420, margin: '0 auto', textAlign: 'left' }}>
-            <span className="avatar" style={{ width: 56, height: 56, fontSize: 22 }}>{BUILDER.name[0]}</span>
-            <h3 className="serif mt-4" style={{ fontSize: 24, lineHeight: 1.2 }}>{BUILDER.name}</h3>
-            <div className="eyebrow mt-2">{BUILDER.role}</div>
-            <p className="text-muted mt-3" style={{ fontSize: 14, lineHeight: 1.6 }}>{BUILDER.bio}</p>
-            <a
-              href={`https://github.com/${BUILDER.handle}`}
-              target="_blank"
-              rel="noreferrer"
-              className="eyebrow mt-4"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--accent)', borderBottom: '1px solid var(--accent)', paddingBottom: 2 }}
-            >
-              @{BUILDER.handle} <Icon name="arrow-up-right" size={12} />
-            </a>
+          <div className="team-grid">
+            {BUILDERS.map((b) => (
+              <div className="card-flat" key={b.handle} style={{ padding: 36, textAlign: 'left' }}>
+                <span className="avatar" style={{ width: 56, height: 56, fontSize: 22 }}>{b.name[0]}</span>
+                <h3 className="serif mt-4" style={{ fontSize: 24, lineHeight: 1.2 }}>{b.name}</h3>
+                <div className="eyebrow mt-2">{b.role}</div>
+                <p className="text-muted mt-3" style={{ fontSize: 14, lineHeight: 1.6 }}>{b.bio}</p>
+                <a
+                  href={`https://github.com/${b.handle}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="eyebrow mt-4"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--accent)', borderBottom: '1px solid var(--accent)', paddingBottom: 2 }}
+                >
+                  @{b.handle} <Icon name="arrow-up-right" size={12} />
+                </a>
+              </div>
+            ))}
           </div>
         </div>
       </section>
