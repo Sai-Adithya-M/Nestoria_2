@@ -17,6 +17,7 @@ export default function Icon({ name, size = 18, stroke = 1.6, ...props }) {
     case 'star':        return (<svg {...common} fill="currentColor" stroke="none"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 16.9l-6.2 3.4 1.6-6.8L2.2 8.9l6.9-.6L12 2z"/></svg>);
     case 'arrow-right': return (<svg {...common}><path d="M5 12h14M13 5l7 7-7 7"/></svg>);
     case 'arrow-up-right': return (<svg {...common}><path d="M7 17 17 7M9 7h8v8"/></svg>);
+    case 'chevron-up':   return (<svg {...common}><path d="m6 15 6-6 6 6"/></svg>);
     case 'chevron-down': return (<svg {...common}><path d="m6 9 6 6 6-6"/></svg>);
     case 'chevron-left': return (<svg {...common}><path d="m15 6-6 6 6 6"/></svg>);
     case 'chevron-right':return (<svg {...common}><path d="m9 6 6 6-6 6"/></svg>);

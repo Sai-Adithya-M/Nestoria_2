@@ -987,6 +987,40 @@ h1, h2, h3, h4 { margin: 0; font-weight: 500; letter-spacing: -0.02em; }
 /* ---------- Focus visible ---------- */
 :focus-visible { outline: none; box-shadow: var(--ring); border-radius: 8px; }
 
+/* ---------- Scroll to top button ---------- */
+.scroll-top-btn {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 90;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--accent) 90%, transparent);
+  color: var(--accent-ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid color-mix(in oklab, var(--accent) 60%, transparent);
+  opacity: 0;
+  transform: translateY(16px);
+  pointer-events: none;
+  transition: opacity .3s ease, transform .3s ease, background-color .2s ease;
+}
+.scroll-top-btn.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.scroll-top-btn:hover {
+  background: var(--accent);
+  box-shadow: 0 8px 22px -10px color-mix(in oklab, var(--accent) 60%, transparent);
+  transform: translateY(-2px);
+}
+
 /* =========================================================
    Responsive utilities — class families used across screens
    to replace inline JSX gridTemplateColumns rules so they
